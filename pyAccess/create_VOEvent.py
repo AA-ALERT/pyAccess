@@ -62,6 +62,7 @@ def get_value(v, param_data, mapping, idx):
         'Param':    get_param(param_data, mapping, idx),
         'Coord':    get_coord(v, mapping, idx),
         'ISOTime':  vp.pull_isotime(v, index=0),
+        'XML':      vp.dumps(v),
         '':         None
     }
     # get function from switcher dictionary
@@ -95,12 +96,14 @@ def parse_VOEvent(voevent, mapping):
     param_data = vp.pull_params(v)  # puts all params into dict param_data[group][param_name]
     vo_data = (lambda v=v,mapping=mapping: (
                [v.xpath('.//' + event.replace('.','/')) if mapping[
-               'VOEvent TYPE'].iloc[idx] not in ['Param', 'Coord', 'ISOTime']
+               'VOEvent TYPE'].iloc[idx] not in ['Param', 'Coord', 'ISOTime', 'XML']
                and event else get_value(
                v, param_data, mapping, idx) for idx,event in
                enumerate(mapping['VOEvent'])]))()
     # add to pandas dataframe as a new column
     mapping.loc[:,'value'] = pandas.Series(vo_data, index=mapping.index)
+    # need to add xml file to database as well
+    import pdb; pdb.set_trace()
     return mapping
 
 
@@ -114,8 +117,18 @@ def process_VOEvent(voevent):
     mapping = utils.VOEvent_FRBCAT_mapping()
     # parse VOEvent xml file
     vo_dict = parse_VOEvent(voevent, mapping)
-    # TODO: write to FRBCAT 
-    import pdb; pdb.set_trace()
+    # create a new FRBCat entry  # TODO: handle other types
+    new_FRBCat_entry(vo_dict)
+
+
+def new_FRBCat_entry(mapping):
+    '''
+    Add new FRBCat entry
+    '''
+    # connect to database
+    connection, cursor = utils.connectToDB()  # TODO: add connection details
+    # 
+    utils.add_VOEvent_to_FRBCat(cursor, mapping)
 
 
 if __name__=="__main__":

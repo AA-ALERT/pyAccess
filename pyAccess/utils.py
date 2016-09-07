@@ -40,7 +40,7 @@ def start_logging(filename, level=DEFAULT_LOG_LEVEL,
     else:  # wish there was a logger.close()
         for handler in logger.handlers[:]:  # make a copy of the list
             logger.removeHandler(handler)
-    logger.setLevel(LOG_LEVELS[level])
+    logger.setLevelF(LOG_LEVELS[level])
     formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
     # Define and add file handler
     fh = RotatingFileHandler(filename,
@@ -92,6 +92,38 @@ def closeDBConnection(connection, cursor):
     msg = 'Connection to the DB is closed.'
     logging.debug(msg)
     return
+
+
+def add_VOEvent_to_FRBCat(cursor, mapping):
+    '''
+    Add a VOEvent to the FRBCat database
+      - input:
+          cursor: database cursor objec
+          mapping: mapping between database entry and VOEvent extracted value
+                     db tables in mapping['FRBCAT TABLE']
+                     db columns in mapping['FRBCAT COLUMN']
+                     db values in mapping['values']
+    '''
+    # define FRBCat database tables
+    tables = ["frbs","observations","radio_obs_params","radio_measured_params"]
+    # loop over defined tables
+    for table in tables:
+        # extract the rows from the mapping that are in the table
+        to_add = mapping.loc[(mapping['FRBCAT TABLE'] == table) &
+                             (mapping['value'].notnull())]
+        # extract db rows and values to add
+        rows = to_add['FRBCAT COLUMN'].values
+        # loop over extracted rows and insert values
+        for row in rows:
+            # extract value from pandas dataframe
+            value = to_add.loc[to_add[
+                               'FRBCAT COLUMN'] == row]['value'].values[0]
+            # try to insert
+            try:
+               cursor.execute("INSERT INTO ({}) VALUES (())".format(row,value))
+               db.commit()
+            except:
+               db.rollback()
 
 
 def VOEvent_FRBCAT_mapping(new_event=True):

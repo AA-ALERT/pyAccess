@@ -54,7 +54,7 @@ radio_obs_params_notes/       id/                        INT UNSIGNED/  /
 radio_obs_params_notes/       radio_obs_param_id/        INT UNSIGNED/  /
 radio_obs_params_notes/       last_modified/             TIMESTAMP/     /             Who.Date/
 radio_obs_params_notes/       author/                    VARCHAR/       /             Who.AuthorIVORN/
-radio_obs_params_notes/       note/                      LONGTEXT/      Param/                  /              How
+radio_obs_params_notes/       note/                      LONGTEXT/      Param/        /              How
 
 radio_measured_params/        id/                        INT UNSIGNED/  /
 radio_measured_params/        obs_params_id/             INT UNSIGNED/  /
@@ -86,9 +86,9 @@ radio_measured_params/        z_phot_error/              FLOAT/         Param/  
 radio_measured_params/        z_spec/                    FLOAT/         Param/        Meas_Params/
 radio_measured_params/        z_spec_error/              FLOAT/         Param/        Meas_Params/
 radio_measured_params/        rank/                      INT/           Param/        Meas_Params/
-radio_measured_params/        authorivorn/               IVORN/
+radio_measured_params/        authorivorn/               IVORN/         /             /
 radio_measured_params/        ivorn/                     IVORN/         /             /.attr[ivorn]
-radio_measured_params/        voeventxml/                LONGTEXT/      /             /XML
+radio_measured_params/        voeventxml/                LONGTEXT/      XML/          /
 
 radio_measured_params_notes/  id/                        INT UNSIGNED/  /
 radio_measured_params_notes/  radio_measured_param_id/   INT UNSIGNED/  /
