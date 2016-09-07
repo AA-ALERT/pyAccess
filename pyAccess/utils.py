@@ -40,7 +40,7 @@ def start_logging(filename, level=DEFAULT_LOG_LEVEL,
     else:  # wish there was a logger.close()
         for handler in logger.handlers[:]:  # make a copy of the list
             logger.removeHandler(handler)
-    logger.setLevelF(LOG_LEVELS[level])
+    logger.setLevel(LOG_LEVELS[level])
     formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
     # Define and add file handler
     fh = RotatingFileHandler(filename,

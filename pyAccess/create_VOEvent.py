@@ -57,12 +57,25 @@ def get_coord(v, mapping, idx):
         return None
 
 
+def get_attrib(v, mapping, idx):
+    '''
+    Get xml attributes
+    '''
+    try:
+        return v.attrib[mapping['VOEvent'].iloc[idx]]
+    except ValueError:
+        return None
+    except KeyError:
+        return None
+
+
 def get_value(v, param_data, mapping, idx):
     switcher = {
         'Param':    get_param(param_data, mapping, idx),
         'Coord':    get_coord(v, mapping, idx),
         'ISOTime':  vp.pull_isotime(v, index=0),
         'XML':      vp.dumps(v),
+        'attrib':   get_attrib(v, mapping, idx),
         '':         None
     }
     # get function from switcher dictionary
@@ -96,14 +109,14 @@ def parse_VOEvent(voevent, mapping):
     param_data = vp.pull_params(v)  # puts all params into dict param_data[group][param_name]
     vo_data = (lambda v=v,mapping=mapping: (
                [v.xpath('.//' + event.replace('.','/')) if mapping[
-               'VOEvent TYPE'].iloc[idx] not in ['Param', 'Coord', 'ISOTime', 'XML']
+               'VOEvent TYPE'].iloc[idx] not in [
+               'Param', 'Coord', 'ISOTime', 'XML', 'attrib']
                and event else get_value(
                v, param_data, mapping, idx) for idx,event in
                enumerate(mapping['VOEvent'])]))()
     # add to pandas dataframe as a new column
     mapping.loc[:,'value'] = pandas.Series(vo_data, index=mapping.index)
     # need to add xml file to database as well
-    import pdb; pdb.set_trace()
     return mapping
 
 

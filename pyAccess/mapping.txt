@@ -20,7 +20,7 @@ observations/                 telescope/                 TEXT/          /       
 observations/                 utc/                       TIMESTAMP/     ISOTime/      WhereWhen.ObsDataLocation.ObservationLocation.AstroCoords.Time.TimeInstant.ISOTime/
 observations/                 data_link/                 TEXT/          Param/        /
 observations/                 detected/                  TINYINT/       Param/        /
-observations/                 authorivorn/               IVORN/
+observations/                 authorivorn/               IVORN/         /             Who.AuthorIVORN/
 
 observations_notes/           id/                        INT UNSIGNED/  /
 observations_notes/           observation_id/            INT UNSIGNED/  /
@@ -86,8 +86,8 @@ radio_measured_params/        z_phot_error/              FLOAT/         Param/  
 radio_measured_params/        z_spec/                    FLOAT/         Param/        Meas_Params/
 radio_measured_params/        z_spec_error/              FLOAT/         Param/        Meas_Params/
 radio_measured_params/        rank/                      INT/           Param/        Meas_Params/
-radio_measured_params/        authorivorn/               IVORN/         /             /
-radio_measured_params/        ivorn/                     IVORN/         /             /.attr[ivorn]
+radio_measured_params/        authorivorn/               IVORN/         /             Who.AuthorIVORN/
+radio_measured_params/        ivorn/                     IVORN/         attrib/       ivorn/
 radio_measured_params/        voeventxml/                LONGTEXT/      XML/          /
 
 radio_measured_params_notes/  id/                        INT UNSIGNED/  /
