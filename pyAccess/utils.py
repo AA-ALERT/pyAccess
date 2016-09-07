@@ -9,6 +9,7 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 import pymysql.cursors
 import logging
 from logging.handlers import RotatingFileHandler
+import pandas as pd
 
 # define global LOG variables
 DEFAULT_LOG_LEVEL = 'debug'
@@ -55,7 +56,7 @@ def start_logging(filename, level=DEFAULT_LOG_LEVEL,
     console.setFormatter(formatter)
     # add the handler to the root logger
     logger.addHandler(console)
-return logger
+    return logger
 
 
 def connectToDB(dbName = None, userName= None, dbPassword = None, dbHost = None,
@@ -79,7 +80,7 @@ def connectToDB(dbName = None, userName= None, dbPassword = None, dbHost = None,
     logging.debug(msg)
     # if the connection succeeded get a cursor    
     cursor = connection.cursor()
-return connection, cursor
+    return connection, cursor
 
 
 def closeDBConnection(connection, cursor):
@@ -90,4 +91,39 @@ def closeDBConnection(connection, cursor):
     connection.close()    
     msg = 'Connection to the DB is closed.'
     logging.debug(msg)
-return
+    return
+
+
+def VOEvent_FRBCAT_mapping(new_event=True):
+    '''
+    Create a dictionary of dicts of VOEvent -> FRBCAT mapping
+        new_event: boolean indicating if event is a new event,default=True
+    '''
+    # read mapping.txt into a pandas dataframe
+    convert={0:strip, 1:strip, 2:strip, 3:strip, 4:strip}
+    df = pd.read_table('mapping.txt', sep='/', engine='c', header=0,
+                       skiprows=[0], skip_blank_lines=True,
+                       skipinitialspace=True,
+                       converters=convert).fillna('None')
+    # todo: handle new events
+    #mapping = Dictlist(zip(df.to_dict('split')['index'], df.to_dict('records')))
+    #import pdb; pdb.set_trace()
+    #return mapping
+    # return pandas dataframe
+    return df
+
+
+def strip(text):
+    try:
+        return text.strip()
+    except AttributeError:
+        return text
+        
+
+class Dictlist(dict):
+    def __setitem__(self, key, value):
+        try:
+            self[key]
+        except KeyError:
+            super(Dictlist, self).__setitem__(key, [])
+        self[key].append(value)
