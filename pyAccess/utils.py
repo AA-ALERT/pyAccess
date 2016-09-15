@@ -98,14 +98,14 @@ def add_VOEvent_to_FRBCat(cursor, mapping):
     '''
     Add a VOEvent to the FRBCat database
       - input:
-          cursor: database cursor objec
+          cursor: database cursor object
           mapping: mapping between database entry and VOEvent extracted value
                      db tables in mapping['FRBCAT TABLE']
                      db columns in mapping['FRBCAT COLUMN']
                      db values in mapping['values']
     '''
-    # define FRBCat database tables
-    tables = ["frbs","observations","radio_obs_params","radio_measured_params"]
+    # get FRBCat db tables from pandas dataframe mapping
+    tables = set(mapping['FRBCAT TABLE'].values)
     # loop over defined tables
     for table in tables:
         # extract the rows from the mapping that are in the table
@@ -124,6 +124,35 @@ def add_VOEvent_to_FRBCat(cursor, mapping):
                db.commit()
             except:
                db.rollback()
+
+
+def extract_from_db_sql(cursor, event_id, table, column):
+    '''
+    Extract a value from the database
+    '''
+    sql = "select {} from {} where id={}".format().format(table,
+                                                          column, event_id)
+    cursor.execute(sql)
+    return cursor.fetchone()
+
+
+def decode_VOEvent_from_FRBCat(cursor, mapping, event_id):
+    '''
+    Decode a VOEvent from the FRBCat database
+      input:
+        cursor: database cursor object
+        mapping: mapping between database entry and VOEvent xml
+      output:
+        updated mapping with added values column
+    '''
+    # extract values from db for each row in mapping pandas dataframe
+    values = [extract_from_db(cursor, event_id, 
+                              mapping.iloc[idx]['FRBCAT TABLE'],
+                              mapping.iloc[idx]['FRBCAT COLUMN']) for idx,
+                              row in mapping.iterrows()]
+    # add to pandas dataframe as a new column
+    mapping.loc[:,'value'] = pandas.Series(values, index=mapping.index)                              
+    return mapping
 
 
 def VOEvent_FRBCAT_mapping(new_event=True):
