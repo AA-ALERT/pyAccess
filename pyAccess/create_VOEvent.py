@@ -8,9 +8,9 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 
 import argparse
 import voeventparse as vp
-import utils
 import pandas
-
+import dbase
+import utils
 
 def cli_parser():
     '''
@@ -139,7 +139,7 @@ def new_FRBCat_entry(mapping):
     Add new FRBCat entry
     '''
     # connect to database
-    connection, cursor = utils.connectToDB()  # TODO: add connection details
+    connection, cursor = dbase.connectToDB()  # TODO: add connection details
     # 
     utils.add_VOEvent_to_FRBCat(cursor, mapping)
 

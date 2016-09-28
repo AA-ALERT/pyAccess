@@ -10,6 +10,8 @@ import pymysql.cursors
 import logging
 from logging.handlers import RotatingFileHandler
 import pandas as pd
+import dbase
+
 
 # define global LOG variables
 DEFAULT_LOG_LEVEL = 'debug'
@@ -59,41 +61,6 @@ def start_logging(filename, level=DEFAULT_LOG_LEVEL,
     return logger
 
 
-def connectToDB(dbName = None, userName= None, dbPassword = None, dbHost = None,
-                dbPort = None):
-    '''
-    Connect to a specified MySQL DB and return connection and cursor objects.
-    '''
-    # Start DB connection
-    try: 
-        connection = pymysql.connect(host=dbHost,
-                                     port=dbPort,
-                                     user=userName,
-                                     password=dbPassword,
-                                     db=dbName,
-                                     cursorclass=pymysql.cursors.DictCursor)
-    except Exception as E:
-        err_msg = 'Unable to connect to %s DB.'% dbName
-        logging.error((err_msg, "; %s: %s" % (E.__class__.__name__, E)))
-        raise
-    msg = 'Successful connected to %s DB.'%dbName
-    logging.debug(msg)
-    # if the connection succeeded get a cursor    
-    cursor = connection.cursor()
-    return connection, cursor
-
-
-def closeDBConnection(connection, cursor):
-    '''
-    Closes a connection to a DB given the connection and cursor objects
-    '''
-    cursor.close()
-    connection.close()    
-    msg = 'Connection to the DB is closed.'
-    logging.debug(msg)
-    return
-
-
 def add_VOEvent_to_FRBCat(cursor, mapping):
     '''
     Add a VOEvent to the FRBCat database
@@ -126,16 +93,6 @@ def add_VOEvent_to_FRBCat(cursor, mapping):
                db.rollback()
 
 
-def extract_from_db_sql(cursor, event_id, table, column):
-    '''
-    Extract a value from the database
-    '''
-    sql = "select {} from {} where id={}".format().format(table,
-                                                          column, event_id)
-    cursor.execute(sql)
-    return cursor.fetchone()
-
-
 def decode_VOEvent_from_FRBCat(cursor, mapping, event_id):
     '''
     Decode a VOEvent from the FRBCat database
@@ -146,10 +103,10 @@ def decode_VOEvent_from_FRBCat(cursor, mapping, event_id):
         updated mapping with added values column
     '''
     # extract values from db for each row in mapping pandas dataframe
-    values = [extract_from_db(cursor, event_id, 
-                              mapping.iloc[idx]['FRBCAT TABLE'],
-                              mapping.iloc[idx]['FRBCAT COLUMN']) for idx,
-                              row in mapping.iterrows()]
+    values = [dbase.extract_from_db(cursor, event_id, 
+                                    mapping.iloc[idx]['FRBCAT TABLE'],
+                                    mapping.iloc[idx]['FRBCAT COLUMN']) for idx,
+                                    row in mapping.iterrows()]
     # add to pandas dataframe as a new column
     mapping.loc[:,'value'] = pandas.Series(values, index=mapping.index)                              
     return mapping
