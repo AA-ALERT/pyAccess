@@ -14,6 +14,8 @@ setup(
     keywords = "VOEvent, FRBCAT",
     url = "https://github.com/AA-ALERT/pyAccess",
     packages=['pyAccess'],
+    scripts=['pyAccess/scripts/decode_VOEvent',
+             'pyAccess/scripts/create_VOEvent'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

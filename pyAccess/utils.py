@@ -10,7 +10,7 @@ import pymysql.cursors
 import logging
 from logging.handlers import RotatingFileHandler
 import pandas as pd
-import dbase
+from pyAccess import dbase
 
 
 # define global LOG variables
@@ -103,12 +103,12 @@ def decode_VOEvent_from_FRBCat(cursor, mapping, event_id):
         updated mapping with added values column
     '''
     # extract values from db for each row in mapping pandas dataframe
-    values = [dbase.extract_from_db(cursor, event_id, 
+    values = [dbase.extract_from_db(cursor, event_id,
                                     mapping.iloc[idx]['FRBCAT TABLE'],
                                     mapping.iloc[idx]['FRBCAT COLUMN']) for idx,
                                     row in mapping.iterrows()]
     # add to pandas dataframe as a new column
-    mapping.loc[:,'value'] = pandas.Series(values, index=mapping.index)                              
+    mapping.loc[:,'value'] = pandas.Series(values, index=mapping.index)
     return mapping
 
 
@@ -136,7 +136,7 @@ def strip(text):
         return text.strip()
     except AttributeError:
         return text
-        
+
 
 class Dictlist(dict):
     def __setitem__(self, key, value):
