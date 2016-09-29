@@ -7,4 +7,5 @@ install:
   - pip install coverage
 script:
   - nosetests tests/utils_test.py --with-coverage --cover-tests --cover-package=pyAccess
-
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
