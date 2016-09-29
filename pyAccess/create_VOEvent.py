@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 description:    Create a db entry for a VOEvent
 license:        APACHE 2.0
@@ -9,22 +7,8 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 import argparse
 import voeventparse as vp
 import pandas
-import dbase
-import utils
-
-def cli_parser():
-    '''
-    parse command line arguments:
-        should be single/multiple valid VOEvent xml files
-    '''
-    parser = argparse.ArgumentParser(description='Process VOEvent XML file '
-                                     'and add it to FRB database')
-    parser.add_argument('VOEvents', metavar='VOEvent',
-                        type=argparse.FileType('rb'), nargs='+',
-                        help='List of VOEvent XML files')
-    results = vars(parser.parse_args())['VOEvents']
-    return results
-
+from pyAccess import dbase
+from pyAccess import FRBCat
 
 def get_param(param_data, mapping, idx):
     '''
@@ -100,9 +84,9 @@ def parse_VOEvent(voevent, mapping):
     # For a new VOEvent there should be no citations
     if not v.xpath('Citations'):
         # new VOEvent
-        mapping = utils.VOEvent_FRBCAT_mapping(new_event=True)
+        mapping = FRBCat.VOEvent_FRBCAT_mapping(new_event=True)
     else:
-        mapping = utils.VOEvent_FRBCAT_mapping(new_event=False)
+        mapping = FRBCat.VOEvent_FRBCAT_mapping(new_event=False)
     # use the mapping to get required data from VOEvent xml
     # if a path is not found in the xml it gets an empty list which is
     # removed in the next step
@@ -127,7 +111,7 @@ def process_VOEvent(voevent):
         - voevent: VOEevent xml file
     '''
     # load mapping VOEvent -> FRBCAT
-    mapping = utils.VOEvent_FRBCAT_mapping()
+    mapping = FRBCat.VOEvent_FRBCAT_mapping()
     # parse VOEvent xml file
     vo_dict = parse_VOEvent(voevent, mapping)
     # create a new FRBCat entry  # TODO: handle other types
@@ -141,11 +125,5 @@ def new_FRBCat_entry(mapping):
     # connect to database
     connection, cursor = dbase.connectToDB()  # TODO: add connection details
     # 
-    utils.add_VOEvent_to_FRBCat(cursor, mapping)
-
-
-if __name__=="__main__":
-    voevents = cli_parser()
-    for voevent in voevents:  # TODO: do we allow multiple xml files?
-        vo_data, mapping = process_VOEvent(voevent)
+    FRBCat.add_VOEvent_to_FRBCat(cursor, mapping)
 

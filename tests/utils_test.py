@@ -1,6 +1,9 @@
+from pyAccess import utils as pAutils
 
-def test_strip():
-  from pyAccess import utils as pAutils
-  for txt in [' test', 'test ', ' test ']:
-    assert(pAutils.strip(' test')) == 'test'
+def test1_strip():
+    for txt in [' test', 'test ', ' test ']:
+        assert pAutils.strip(txt) == 'test'
 
+
+def test2_strip():
+    assert pAutils.strip(list('test')) == list('test')
