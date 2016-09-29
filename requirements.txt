@@ -1,2 +1,4 @@
 voevent-parse
+pandas
+pymysql
 
