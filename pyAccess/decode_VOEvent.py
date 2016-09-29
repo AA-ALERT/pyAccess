@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 description:    Decode VOEvent db entry to xml
 license:        APACHE 2.0
@@ -9,8 +7,9 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 import argparse
 import voeventparse as vp
 import pandas
-import utils
-import dbase
+from pyAccess import utils
+from pyAccess import dbase
+
 
 def decode_FRBCat_entry():
     '''
@@ -23,6 +22,3 @@ def decode_FRBCat_entry():
     # 
     utils.decode_VOEvent_from_FRBCat(cursor, mapping)
 
-
-if __name__=="__main__":
-    decode_FRBCat_entry()

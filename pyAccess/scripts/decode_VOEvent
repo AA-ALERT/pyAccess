@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 
 '''
-description:    Decode VOEvent db entry to xml
+description:    Decode VOEvent db entry to xml: Runner
 license:        APACHE 2.0
 author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 '''
 
 import argparse
-import voeventparse as vp
-import pandas
-from pyAccess import utils
-from pyAccess import dbase
+from pyAccess import decode_VOEvent as pAdecode
+
 
 def decode_FRBCat_entry():
     '''
@@ -25,4 +23,4 @@ def decode_FRBCat_entry():
 
 
 if __name__=="__main__":
-    decode_FRBCat_entry()
+    pAdecode.decode_FRBCat_entry()
