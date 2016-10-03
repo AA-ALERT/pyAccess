@@ -8,6 +8,8 @@ import pymysql.cursors
 import pandas as pd
 from pyAccess import dbase as pAdbase
 from pyAccess import utils as pAutils
+import os
+import sys
 
 def add_VOEvent_to_FRBCat(cursor, mapping):
     '''
@@ -69,7 +71,10 @@ def VOEvent_FRBCAT_mapping(new_event=True):
     # read mapping.txt into a pandas dataframe
     convert={0:pAutils.strip, 1:pAutils.strip, 2:pAutils.strip, 3:pAutils.strip,
              4:pAutils.strip}
-    df = pd.read_table('mapping.txt', sep='/', engine='c', header=0,
+    # location of mapping.txt file
+    mapping = os.path.join(os.path.dirname(sys.modules['pyAccess'].__file__),
+                           'mapping.txt')
+    df = pd.read_table(mapping, sep='/', engine='c', header=0,
                        skiprows=[0], skip_blank_lines=True,
                        skipinitialspace=True,
                        converters=convert).fillna('None')
