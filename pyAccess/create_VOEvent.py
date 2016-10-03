@@ -9,6 +9,8 @@ import voeventparse as vp
 import pandas
 from pyAccess import dbase
 from pyAccess import FRBCat
+from pytz import timezone
+
 
 def get_param(param_data, mapping, idx):
     '''
@@ -53,11 +55,22 @@ def get_attrib(v, mapping, idx):
         return None
 
 
+def get_utc_time_str(v):
+    '''
+    Get time in UTC
+    Return string 'YYYY-MM-DD HH:MM:SS'
+    '''
+    isotime = vp.pull_isotime(v, index=0)
+    # convert to UTC
+    utctime = isotime.astimezone(timezone('UTC'))
+    # return time in UTC string
+    return utctime.strftime("%Y-%m-%d %H:%M:%S")
+    
 def get_value(v, param_data, mapping, idx):
     switcher = {
         'Param':    get_param(param_data, mapping, idx),
         'Coord':    get_coord(v, mapping, idx),
-        'ISOTime':  vp.pull_isotime(v, index=0),
+        'ISOTime':  get_utc_time_str(v),
         'XML':      vp.dumps(v),
         'attrib':   get_attrib(v, mapping, idx),
         '':         None
