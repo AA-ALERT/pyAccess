@@ -8,9 +8,10 @@ import argparse
 import voeventparse as vp
 import pandas
 from pyAccess import dbase
-from pyAccess import FRBCat
+#from pyAccess import FRBCat
 from pytz import timezone
-
+from pyAccess.FRBCat import *
+import utils
 
 def get_param(param_data, mapping, idx):
     '''
@@ -22,7 +23,6 @@ def get_param(param_data, mapping, idx):
     except KeyError:
         return None
 
-
 def get_coord(v, mapping, idx):
     '''
     Get astro coordinates
@@ -32,11 +32,17 @@ def get_coord(v, mapping, idx):
         'decj': 'dec',
         'gl': 'gl',
         'gb': 'gb',
-        'pointing_error': 'Error2Radius',
+        'pointing_error': 'err',
     }
     try:
-        return getattr(vp.pull_astro_coords(v, index=0),
-                       switcher[[mapping['FRBCAT COLUMN'].iloc[idx]][0]])
+        utils.decdeg2dms(vp.pull_astro_coords(v, index=0).ra)
+        key = switcher[[mapping['FRBCAT COLUMN'].iloc[idx]][0]]
+        if key in ['raj', 'decj', 'ra', 'dec']:
+            return utils.decdeg2dms(getattr(vp.pull_astro_coords(v, index=0),
+                                    key))
+        else:
+            return getattr(vp.pull_astro_coords(v, index=0),
+                           key)
     except AttributeError:
         return None
     except KeyError:
@@ -54,7 +60,6 @@ def get_attrib(v, mapping, idx):
     except KeyError:
         return None
 
-
 def get_utc_time_str(v):
     '''
     Get time in UTC
@@ -65,7 +70,8 @@ def get_utc_time_str(v):
     utctime = isotime.astimezone(timezone('UTC'))
     # return time in UTC string
     return utctime.strftime("%Y-%m-%d %H:%M:%S")
-    
+
+
 def get_value(v, param_data, mapping, idx):
     switcher = {
         'Param':    get_param(param_data, mapping, idx),
@@ -97,7 +103,7 @@ def parse_VOEvent(voevent, mapping):
     # For a new VOEvent there should be no citations
     if not v.xpath('Citations'):
         # new VOEvent
-        mapping = FRBCat.VOEvent_FRBCAT_mapping(new_event=True)
+        mapping = VOEvent_FRBCAT_mapping(new_event=True)
     else:
         mapping = FRBCat.VOEvent_FRBCAT_mapping(new_event=False)
     # use the mapping to get required data from VOEvent xml
@@ -111,8 +117,20 @@ def parse_VOEvent(voevent, mapping):
                and event else get_value(
                v, param_data, mapping, idx) for idx,event in
                enumerate(mapping['VOEvent'])]))()
+    vo_data = [None if not a else a for a in vo_data]
+    vo_alta = (lambda v=v,mapping=mapping: (
+               [v.xpath('.//' + event.replace('.','/')) if mapping[
+               'VOEvent TYPE'].iloc[idx] not in [
+               'Param', 'Coord', 'ISOTime', 'XML', 'attrib']
+               and event else get_value(
+               v, param_data, mapping, idx) for idx,event in
+               enumerate(mapping['VOEvent_alt'])]))()
+    vo_alta = [None if not a else a for a in vo_alta]
+    # TODO: merging is a placeholder: some things may depend on new/not new event
+    merged =(lambda vo_data=vo_data,vo_alta=vo_alta: ([vo_data[idx] if vo_data[idx] else vo_alta[idx] for idx in range(0,len(vo_alta))]))()
+    merged = [x[0] if isinstance(x, list) else x for x in merged] # TODO: placeholder, don't want lists in here
     # add to pandas dataframe as a new column
-    mapping.loc[:,'value'] = pandas.Series(vo_data, index=mapping.index)
+    mapping.loc[:,'value'] = pandas.Series(merged, index=mapping.index)
     # need to add xml file to database as well
     return mapping
 
@@ -124,7 +142,7 @@ def process_VOEvent(voevent):
         - voevent: VOEevent xml file
     '''
     # load mapping VOEvent -> FRBCAT
-    mapping = FRBCat.VOEvent_FRBCAT_mapping()
+    mapping = VOEvent_FRBCAT_mapping()
     # parse VOEvent xml file
     vo_dict = parse_VOEvent(voevent, mapping)
     # create a new FRBCat entry  # TODO: handle other types
@@ -136,7 +154,8 @@ def new_FRBCat_entry(mapping):
     Add new FRBCat entry
     '''
     # connect to database
-    connection, cursor = dbase.connectToDB()  # TODO: add connection details
-    # 
-    FRBCat.add_VOEvent_to_FRBCat(cursor, mapping)
+    connection, cursor = dbase.connectToDB(dbName = 'frbcat', userName= 'aa-alert', dbPassword = 'aa-alert')  # TODO: add connection details
+    #
+    FRBCat = FRBCat_add(connection, cursor, mapping)
+    FRBCat.add_VOEvent_to_FRBCat()
 
