@@ -19,6 +19,4 @@ def decode_FRBCat_entry():
     connection, cursor = dbase.connectToDB()  # TODO: add connection details
     # load mapping VOEvent -> FRBCat
     mapping = utils.VOEvent_FRBCAT_mapping()
-    # 
     utils.decode_VOEvent_from_FRBCat(cursor, mapping)
-

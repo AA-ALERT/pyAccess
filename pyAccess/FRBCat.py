@@ -16,6 +16,7 @@ from pyAccess import dbase
 from numpy import where as npwhere
 from numpy import ravel as npravel
 
+
 class FRBCat_add:
     def __init__(self, connection, cursor, mapping):
         self.connection = connection
@@ -28,7 +29,8 @@ class FRBCat_add:
         if author is found, set self.author_id
         '''
         # check if the author ivorn is already in the database
-        author_id = dbase.extract_from_db_sql(self.cursor, 'authors', 'id', 'ivorn', ivorn)
+        author_id = dbase.extract_from_db_sql(self.cursor, 'authors', 'id',
+                                              'ivorn', ivorn)
         if not author_id:  # did not find the author ivorn
             return False
         else:  # set self.author_id to the one in the database
@@ -41,13 +43,14 @@ class FRBCat_add:
         if event is found, set self.event_id
         '''
         # check if the event ivorn is already in the database
-        event_id = dbase.extract_from_db_sql(self.cursor, 'radio_measured_params', 'id', 'voevent_ivorn', ivorn)
+        event_id = dbase.extract_from_db_sql(
+            self.cursor, 'radio_measured_params', 'id', 'voevent_ivorn', ivorn)
         if not event_id:  # did not find the event ivorn
             return False
         else:  # set self.event_id to the id of the ivorn in the database
             self.event_id = event_id['id']
             return True
- 
+
     def add_authors(self, table, rows, value):
         '''
         Add author to the database if the ivorn is not in the authors table
@@ -83,12 +86,12 @@ class FRBCat_add:
         rows = npappend(rows, ('frb_id', 'pub_id'))
         value = npappend(value, (self.frb_id, self.pub_id))
         self.insert_into_database(table, rows, value)
-    
+
     def add_observations(self, table, rows, value):
         '''
         Add event to the observations table
         '''
-        rows = npappend(rows, ('frb_id', 'author_id')) 
+        rows = npappend(rows, ('frb_id', 'author_id'))
         value = npappend(value, (self.frb_id, self.author_id))
         self.obs_id = self.insert_into_database(table, rows, value)
 
@@ -96,7 +99,7 @@ class FRBCat_add:
         '''
         Add event to the observations_notes table
         '''
-        rows = npappend(rows, ('obs_id')) 
+        rows = npappend(rows, ('obs_id'))
         value = npappend(value, (self.obs_id))
         obs_notes_id = self.insert_into_database(table, rows, value)
 
@@ -124,7 +127,8 @@ class FRBCat_add:
         value = npappend(value, (self.rop_id))
         rop_notes_id = self.insert_into_database(table, rows, value)
 
-    def add_radio_observations_params_have_publications(self, table, rows, value):
+    def add_radio_observations_params_have_publications(
+      self, table, rows, value):
         '''
         Add event to the radio_observations_params_have_publications table
         '''
@@ -143,7 +147,6 @@ class FRBCat_add:
         # add event to the database if it does not exist yet
         if not self.event_exists:
             self.rmp_id = self.insert_into_database(table, rows, value)
-     
 
     def add_radio_measured_params_notes(self, table, rows, value):
         '''
@@ -178,14 +181,14 @@ class FRBCat_add:
         Add event to the radio_images_have_rmp table
         '''
         rows = npappend(rows, ('radio_image_id', 'rmp_id'))
-        value = npappend(value, (self.rid, self.rmp_id))    
+        value = npappend(value, (self.rid, self.rmp_id))
         self.insert_into_database(table, rows, value)
 
     def insert_into_database(self, table, rows, value):
         row_sql = ', '.join(map(str, rows))
-        self.cursor.execute("INSERT INTO {} ({}) VALUES {}".format(table,row_sql,tuple(value)))
+        self.cursor.execute("INSERT INTO {} ({}) VALUES {}".format(
+                            table, row_sql, tuple(value)))
         return self.connection.insert_id()  # alternatively cursor.lastrowid
-
 
     def add_VOEvent_to_FRBCat(self):
         '''
@@ -193,34 +196,34 @@ class FRBCat_add:
           - input:
               connection: database connection
               cursor: database cursor object
-              mapping: mapping between database entry and VOEvent extracted value
+              mapping: mapping between database entry and VOEvent value
                          db tables in mapping['FRBCAT TABLE']
                          db columns in mapping['FRBCAT COLUMN']
                          db values in mapping['values']
         '''
-		# define database tables in the order they need to be filled
-        tables = ['authors', 'frbs', 'frbs_notes', 'observations', 'observations_notes',
-                  'radio_observations_params', 'radio_observations_params_notes',
+        # define database tables in the order they need to be filled
+        tables = ['authors', 'frbs', 'frbs_notes', 'observations',
+                  'observations_notes', 'radio_observations_params',
+                  'radio_observations_params_notes',
                   'radio_measured_params', 'radio_measured_params_notes']
-		# loop over defined tables
+        # loop over defined tables
         for table in tables:
             try:
                 del value
             except NameError:
                 pass
-	        # extract the rows from the mapping that are in the table
+            # extract the rows from the mapping that are in the table
             to_add = self.mapping.loc[(self.mapping['FRBCAT TABLE'] == table) &
                                       (self.mapping['value'].notnull())]
             # extract db rows and values to add
             rows = to_add['FRBCAT COLUMN'].values
-   	        # loop over extracted rows and insert values
+            # loop over extracted rows and insert values
             for row in rows:
                 # extract value from pandas dataframe
                 try:
                     value
-                    value.append(to_add.loc[
-                                 to_add[
-                                 'FRBCAT COLUMN'] == row]['value'].values[0])
+                    value.append(to_add.loc[to_add['FRBCAT COLUMN'] == row][
+                        'value'].values[0])
                 except UnboundLocalError:
                     value = [to_add.loc[to_add[
                              'FRBCAT COLUMN'] == row]['value'].values[0]]
@@ -245,33 +248,34 @@ class FRBCat_add:
                     break  # don't want to add already existing event
             if table == 'radio_measured_params_notes':
                 self.add_radio_measured_params_notes(table, rows, value)
-		if self.event_exists:
-    		# event is already in database, rollback #TODO: is this what we want to do?
-		    self.connection.rollback()
-		else:
-		    # commit changes to db
-		    self.connection.rollback()  #TODO: remove this line in favor of the next
-		    #dbase.commitToDB(self.connection, self.cursor)
+        if self.event_exists:
+            # event is already in database, rollback
+            # TODO: is this what we want to do?
+            self.connection.rollback()
+        else:
+            # commit changes to db
+            self.connection.rollback()  # TODO: placeholder for next line
+            # dbase.commitToDB(self.connection, self.cursor)
         dbase.closeDBConnection(self.connection, self.cursor)
 
-	def decode_VOEvent_from_FRBCat(cursor, mapping, event_id):
-		'''
-		Decode a VOEvent from the FRBCat database
-		  input:
-		    cursor: database cursor object
-		    mapping: mapping between database entry and VOEvent xml
-		  output:
-		    updated mapping with added values column
-		'''
-		# extract values from db for each row in mapping pandas dataframe
-		values = [pAdbase.extract_from_db(
-		          cursor, event_id,
-		          mapping.iloc[idx]['FRBCAT TABLE'],
-		          mapping.iloc[idx]['FRBCAT COLUMN']) for idx,
-		          row in mapping.iterrows()]
-		# add to pandas dataframe as a new column
-		mapping.loc[:,'value'] = pandas.Series(values, index=mapping.index)
-		return mapping
+    def decode_VOEvent_from_FRBCat(cursor, mapping, event_id):
+        '''
+        Decode a VOEvent from the FRBCat database
+          input:
+            cursor: database cursor object
+            mapping: mapping between database entry and VOEvent xml
+          output:
+            updated mapping with added values column
+        '''
+        # extract values from db for each row in mapping pandas dataframe
+        values = [pAdbase.extract_from_db(
+                  cursor, event_id,
+                  mapping.iloc[idx]['FRBCAT TABLE'],
+                  mapping.iloc[idx]['FRBCAT COLUMN']) for idx,
+                  row in mapping.iterrows()]
+        # add to pandas dataframe as a new column
+        mapping.loc[:, 'value'] = pandas.Series(values, index=mapping.index)
+        return mapping
 
 
 def VOEvent_FRBCAT_mapping(new_event=True):
@@ -280,8 +284,8 @@ def VOEvent_FRBCAT_mapping(new_event=True):
     new_event: boolean indicating if event is a new event,default=True
     '''
     # read mapping.txt into a pandas dataframe
-    convert={0:pAutils.strip, 1:pAutils.strip, 2:pAutils.strip, 3:pAutils.strip,
-             4:pAutils.strip}
+    convert = {0: pAutils.strip, 1: pAutils.strip, 2: pAutils.strip,
+               3: pAutils.strip, 4: pAutils.strip}
     # location of mapping.txt file
     mapping = os.path.join(os.path.dirname(sys.modules['pyAccess'].__file__),
                            'mapping.txt')
@@ -290,8 +294,8 @@ def VOEvent_FRBCAT_mapping(new_event=True):
                        skipinitialspace=True,
                        converters=convert).fillna('None')
     # todo: handle new events
-    #mapping = Dictlist(zip(df.to_dict('split')['index'], df.to_dict('records')))
-    #return mapping
+    # mapping =
+    #   Dictlist(zip(df.to_dict('split')['index'], df.to_dict('records')))
+    # return mapping
     # return pandas dataframe
     return df
-

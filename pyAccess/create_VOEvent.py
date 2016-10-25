@@ -8,10 +8,10 @@ import argparse
 import voeventparse as vp
 import pandas
 from pyAccess import dbase
-#from pyAccess import FRBCat
 from pytz import timezone
 from pyAccess.FRBCat import *
 import utils
+
 
 def get_param(param_data, mapping, idx):
     '''
@@ -19,9 +19,11 @@ def get_param(param_data, mapping, idx):
     '''
     mapping['VOEvent TYPE'][idx] not in ['Param', 'Coord', 'ISOTime']
     try:
-        return param_data[mapping['VOEvent'].iloc[idx]][mapping['FRBCAT COLUMN'].iloc[idx]]
+        return (param_data[mapping['VOEvent'].iloc[idx]]
+                [mapping['FRBCAT COLUMN'].iloc[idx]])
     except KeyError:
         return None
+
 
 def get_coord(v, mapping, idx):
     '''
@@ -59,6 +61,7 @@ def get_attrib(v, mapping, idx):
         return None
     except KeyError:
         return None
+
 
 def get_utc_time_str(v):
     '''
@@ -109,28 +112,33 @@ def parse_VOEvent(voevent, mapping):
     # use the mapping to get required data from VOEvent xml
     # if a path is not found in the xml it gets an empty list which is
     # removed in the next step
-    param_data = vp.pull_params(v)  # puts all params into dict param_data[group][param_name]
-    vo_data = (lambda v=v,mapping=mapping: (
-               [v.xpath('.//' + event.replace('.','/')) if mapping[
-               'VOEvent TYPE'].iloc[idx] not in [
-               'Param', 'Coord', 'ISOTime', 'XML', 'attrib']
-               and event else get_value(
-               v, param_data, mapping, idx) for idx,event in
-               enumerate(mapping['VOEvent'])]))()
+    # puts all params into dict param_data[group][param_name]
+    param_data = vp.pull_params(v)
+    vo_data = (lambda v=v, mapping=mapping: (
+               [v.xpath('.//' + event.replace('.', '/')) if mapping[
+                'VOEvent TYPE'].iloc[idx] not in [
+                'Param', 'Coord', 'ISOTime', 'XML', 'attrib']
+                and event else get_value(
+                v, param_data, mapping, idx) for idx, event in
+                enumerate(mapping['VOEvent'])]))()
     vo_data = [None if not a else a for a in vo_data]
-    vo_alta = (lambda v=v,mapping=mapping: (
-               [v.xpath('.//' + event.replace('.','/')) if mapping[
-               'VOEvent TYPE'].iloc[idx] not in [
-               'Param', 'Coord', 'ISOTime', 'XML', 'attrib']
-               and event else get_value(
-               v, param_data, mapping, idx) for idx,event in
-               enumerate(mapping['VOEvent_alt'])]))()
+    vo_alta = (lambda v=v, mapping=mapping: (
+               [v.xpath('.//' + event.replace('.', '/')) if mapping[
+                'VOEvent TYPE'].iloc[idx] not in [
+                'Param', 'Coord', 'ISOTime', 'XML', 'attrib']
+                and event else get_value(
+                v, param_data, mapping, idx) for idx, event in
+                enumerate(mapping['VOEvent_alt'])]))()
     vo_alta = [None if not a else a for a in vo_alta]
-    # TODO: merging is a placeholder: some things may depend on new/not new event
-    merged =(lambda vo_data=vo_data,vo_alta=vo_alta: ([vo_data[idx] if vo_data[idx] else vo_alta[idx] for idx in range(0,len(vo_alta))]))()
-    merged = [x[0] if isinstance(x, list) else x for x in merged] # TODO: placeholder, don't want lists in here
+    # TODO: merging is a placeholder:
+    # some things may depend on new/not new event
+    merged = (lambda vo_data=vo_data, vo_alta=vo_alta: ([vo_data[idx] if
+              vo_data[idx] else vo_alta[idx] for idx in
+              range(0, len(vo_alta))]))()
+    # make sure we don't have any lists here
+    merged = [x[0] if isinstance(x, list) else x for x in merged]
     # add to pandas dataframe as a new column
-    mapping.loc[:,'value'] = pandas.Series(merged, index=mapping.index)
+    mapping.loc[:, 'value'] = pandas.Series(merged, index=mapping.index)
     # need to add xml file to database as well
     return mapping
 
@@ -154,8 +162,9 @@ def new_FRBCat_entry(mapping):
     Add new FRBCat entry
     '''
     # connect to database
-    connection, cursor = dbase.connectToDB(dbName = 'frbcat', userName= 'aa-alert', dbPassword = 'aa-alert')  # TODO: add connection details
-    #
+    # TODO: add connection details
+    connection, cursor = dbase.connectToDB(dbName='frbcat',
+                                           userName='aa-alert',
+                                           dbPassword='aa-alert')
     FRBCat = FRBCat_add(connection, cursor, mapping)
     FRBCat.add_VOEvent_to_FRBCat()
-

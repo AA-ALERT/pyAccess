@@ -31,7 +31,7 @@ def start_logging(filename, level=DEFAULT_LOG_LEVEL,
         level_c: minimum log level written to std_err
     '''
     global logger
-    if logger == None:
+    if logger is None:
         logger = logging.getLogger()
     else:  # wish there was a logger.close()
         for handler in logger.handlers[:]:  # make a copy of the list
@@ -53,5 +53,3 @@ def start_logging(filename, level=DEFAULT_LOG_LEVEL,
     # add the handler to the root logger
     logger.addHandler(console)
     return logger
-
-
