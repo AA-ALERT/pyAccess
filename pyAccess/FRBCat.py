@@ -6,8 +6,8 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 
 import pymysql.cursors
 import pandas as pd
-from pyAccess import dbase as pAdbase
-from pyAccess import utils as pAutils
+from pyAccess import dbase as dbase
+from pyAccess import utils as utils
 import os
 import sys
 from numpy import append as npappend
@@ -268,7 +268,7 @@ class FRBCat_add:
             updated mapping with added values column
         '''
         # extract values from db for each row in mapping pandas dataframe
-        values = [pAdbase.extract_from_db(
+        values = [dbase.extract_from_db(
                   cursor, event_id,
                   mapping.iloc[idx]['FRBCAT TABLE'],
                   mapping.iloc[idx]['FRBCAT COLUMN']) for idx,
@@ -284,8 +284,8 @@ def VOEvent_FRBCAT_mapping(new_event=True):
     new_event: boolean indicating if event is a new event,default=True
     '''
     # read mapping.txt into a pandas dataframe
-    convert = {0: pAutils.strip, 1: pAutils.strip, 2: pAutils.strip,
-               3: pAutils.strip, 4: pAutils.strip}
+    convert = {0: utils.strip, 1: utils.strip, 2: utils.strip,
+               3: utils.strip, 4: utils.strip}
     # location of mapping.txt file
     mapping = os.path.join(os.path.dirname(sys.modules['pyAccess'].__file__),
                            'mapping.txt')

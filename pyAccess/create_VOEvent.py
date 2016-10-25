@@ -10,7 +10,7 @@ import pandas
 from pyAccess import dbase
 from pytz import timezone
 from pyAccess.FRBCat import *
-import utils
+from pyAccess import utils
 
 
 def get_param(param_data, mapping, idx):
