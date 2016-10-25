@@ -43,6 +43,16 @@ def closeDBConnection(connection, cursor):
     return
 
 
+def commitToDB(connection, cursor):
+    '''
+    Commit changes to database, rollback in case of errors
+    '''
+    try:
+        connection.commit()
+    except:
+        connection.rollback()
+    
+
 def extract_from_db_sql(cursor, table, column, row, value):
     '''
     Extract a value from the database

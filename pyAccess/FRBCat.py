@@ -34,6 +34,19 @@ class FRBCat_add:
         else:  # set self.author_id to the one in the database
             self.author_id = author_id['id']
             return True
+
+    def event_exists(self, ivorn):
+        '''
+        Check if event ivorn already exists in database
+        if event is found, set self.event_id
+        '''
+        # check if the event ivorn is already in the database
+        event_id = dbase.extract_from_db_sql(self.cursor, 'radio_measured_params', 'id', 'voevent_ivorn', ivorn)
+        if not event_id:  # did not find the event ivorn
+            return False
+        else:  # set self.event_id to the id of the ivorn in the database
+            self.event_id = event_id['id']
+            return True
  
     def add_authors(self, table, rows, value):
         '''
@@ -125,7 +138,12 @@ class FRBCat_add:
         '''
         rows = npappend(rows, ('rop_id', 'author_id'))
         value = npappend(value, (self.rop_id, self.author_id))
-        self.rmp_id = self.insert_into_database(table, rows, value)
+        ivorn = value[npwhere(rows == 'voevent_ivorn')][0]
+        self.event_exists = self.event_exists(ivorn)
+        # add event to the database if it does not exist yet
+        if not self.event_exists:
+            self.rmp_id = self.insert_into_database(table, rows, value)
+     
 
     def add_radio_measured_params_notes(self, table, rows, value):
         '''
@@ -180,8 +198,7 @@ class FRBCat_add:
                          db columns in mapping['FRBCAT COLUMN']
                          db values in mapping['values']
         '''
-		# get FRBCat db tables from pandas dataframe mapping
-		#tables = set(mapping['FRBCAT TABLE'].values)
+		# define database tables in the order they need to be filled
         tables = ['authors', 'frbs', 'frbs_notes', 'observations', 'observations_notes',
                   'radio_observations_params', 'radio_observations_params_notes',
                   'radio_measured_params', 'radio_measured_params_notes']
@@ -224,14 +241,18 @@ class FRBCat_add:
                 self.add_radio_observations_params_notes(table, rows, value)
             if table == 'radio_measured_params':
                 self.add_radio_measured_params(table, rows, value)
+                if self.event_exists:
+                    break  # don't want to add already existing event
             if table == 'radio_measured_params_notes':
                 self.add_radio_measured_params_notes(table, rows, value)
-		   #     # try to insert
-		   #     try:
-		   #        cursor.execute("INSERT INTO ({}) VALUES (())".format(row,value))
-		   #        connection.commit()
-		   #     except:
-		   #        connection.rollback()
+		if self.event_exists:
+    		# event is already in database, rollback #TODO: is this what we want to do?
+		    self.connection.rollback()
+		else:
+		    # commit changes to db
+		    self.connection.rollback()  #TODO: remove this line in favor of the next
+		    #dbase.commitToDB(self.connection, self.cursor)
+        dbase.closeDBConnection(self.connection, self.cursor)
 
 	def decode_VOEvent_from_FRBCat(cursor, mapping, event_id):
 		'''
