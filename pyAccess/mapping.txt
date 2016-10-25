@@ -1,12 +1,13 @@
 -----------------------------------------------------------------------------------------------------
 FRBCAT TABLE/                FRBCAT COLUMN/             FRBCAT TYPE/   VOEvent TYPE/  VOEvent/      VOEvent_alt
 -----------------------------------------------------------------------------------------------------
-authors/                      ivorn/                    INT UNSIGNED/
+authors/                      ivorn/                    INT UNSIGNED/   /             Who.AuthorIVORN/
 authors/                      title/                    INT UNSIGNED/
 authors/                      logo_url/                 INT UNSIGNED/
-authors/                      short_name/               INT UNSIGNED/
-authors/                      contact_name/             INT UNSIGNED/
-authors/                      contact_phone/            INT UNSIGNED/
+authors/                      short_name/               INT UNSIGNED/   /             Who.Author.shortName
+authors/                      contact_name/             INT UNSIGNED/   /             Who.Author.contactName
+authors/                      contact_email/             INT UNSIGNED/  /             Who.Author.contactEmail
+authors/                      contact_phone/            INT UNSIGNED/   /             Who.Author.contactPhone
 authors/                      other_information/        INT UNSIGNED/
 
 frbs/                         id/                        INT UNSIGNED/  /             /

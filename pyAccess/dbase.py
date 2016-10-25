@@ -43,12 +43,12 @@ def closeDBConnection(connection, cursor):
     return
 
 
-def extract_from_db_sql(cursor, event_id, table, column):
+def extract_from_db_sql(cursor, table, column, row, value):
     '''
     Extract a value from the database
     '''
-    sql = "select {} from {} where id={}".format().format(table,
-                                                          column, event_id)
+    sql = "select {} from {} where {}='{}'".format(column, table,
+                                                 row, value)
     cursor.execute(sql)
     return cursor.fetchone()
 

@@ -12,6 +12,9 @@ import os
 import sys
 from numpy import append as npappend
 from numpy import array as nparray
+from pyAccess import dbase
+from numpy import where as npwhere
+from numpy import ravel as npravel
 
 class FRBCat_add:
     def __init__(self, connection, cursor, mapping):
@@ -19,74 +22,143 @@ class FRBCat_add:
         self.cursor = cursor
         self.mapping = mapping
 
+    def author_exists(self, ivorn):
+        '''
+        Check if author already exists in database
+        if author is found, set self.author_id
+        '''
+        # check if the author ivorn is already in the database
+        author_id = dbase.extract_from_db_sql(self.cursor, 'authors', 'id', 'ivorn', ivorn)
+        if not author_id:  # did not find the author ivorn
+            return False
+        else:  # set self.author_id to the one in the database
+            self.author_id = author_id['id']
+            return True
+ 
+    def add_authors(self, table, rows, value):
+        '''
+        Add author to the database if the ivorn is not in the authors table
+        '''
+        # check if author already exists in database
+        # TODO: try/except
+        ivorn = value[npwhere(rows == 'ivorn')][0]
+        author_exists = self.author_exists(ivorn)
+        # add author to database if author does not yet exist in db
+        if not author_exists:
+            self.author_id = self.insert_into_database(table, rows, value)
+
     def add_frbs(self, table, rows, value):
+        '''
+        Add event to the frbs table
+        '''
         rows = npappend(rows, 'author_id')
         value = npappend(value, self.author_id)
         self.frb_id = self.insert_into_database(table, rows, value)
 
     def add_frbs_notes(self, table, rows, value):
+        '''
+        Add event to the frbs_notes table
+        '''
         rows = npappend(rows, ('frb_id'))
         value = npappend(value, (self.frb_id))
         frb_notes_id = self.insert_into_database(table, rows, value)
 
     def add_frbs_have_publications(self, table, rows, value):
+        '''
+        Add event to the frbs_have_publications table
+        '''
         rows = npappend(rows, ('frb_id', 'pub_id'))
         value = npappend(value, (self.frb_id, self.pub_id))
         self.insert_into_database(table, rows, value)
     
     def add_observations(self, table, rows, value):
-        # TODO: fix type in database to null
+        '''
+        Add event to the observations table
+        '''
         rows = npappend(rows, ('frb_id', 'author_id')) 
         value = npappend(value, (self.frb_id, self.author_id))
         self.obs_id = self.insert_into_database(table, rows, value)
 
     def add_observations_notes(self, table, rows, value):
+        '''
+        Add event to the observations_notes table
+        '''
         rows = npappend(rows, ('obs_id')) 
         value = npappend(value, (self.obs_id))
         obs_notes_id = self.insert_into_database(table, rows, value)
 
     def add_observations_have_publications(self, table, rows, value):
+        '''
+        Add event to the observations_have_publications table
+        '''
         rows = npappend(rows, ('obs_id', 'pub_id'))
         value = npappend(value, (self.obs_id, self.pub_id))
         self.insert_into_database(table, rows, value)
 
     def add_radio_observations_params(self, table, rows, value):
+        '''
+        Add event to the radio_observations_params table
+        '''
         rows = npappend(rows, ('obs_id', 'author_id'))
         value = npappend(value, (self.obs_id, self.author_id))
         self.rop_id = self.insert_into_database(table, rows, value)
 
     def add_radio_observations_params_notes(self, table, rows, value):
+        '''
+        Add event to the radio_observations_params_notes table
+        '''
         rows = npappend(rows, ('rop_id'))
         value = npappend(value, (self.rop_id))
         rop_notes_id = self.insert_into_database(table, rows, value)
 
     def add_radio_observations_params_have_publications(self, table, rows, value):
+        '''
+        Add event to the radio_observations_params_have_publications table
+        '''
         rows = npappend(rows, ('rop_id', 'pub_id'))
         value = npappend(value, (self.rop_id, self.pub_id))
         self.insert_into_database(table, rows, value)
 
     def add_radio_measured_params(self, table, rows, value):
+        '''
+        Add event to the radio_measured_params table
+        '''
         rows = npappend(rows, ('rop_id', 'author_id'))
         value = npappend(value, (self.rop_id, self.author_id))
         self.rmp_id = self.insert_into_database(table, rows, value)
 
     def add_radio_measured_params_notes(self, table, rows, value):
+        '''
+        Add event to the radio_measured_params_notes table
+        '''
         rows = npappend(rows, ('rmp_id'))
         value = npappend(value, (self.rmp_id))
         rmp_notes_id = self.insert_into_database(table, rows, value)
 
     def add_radio_measured_params_have_publications(self, table, rows, value):
+        '''
+        Add event to the radio_measured_params_have_publications table
+        '''
         rows = npappend(rows, ('rmp_id', 'pub_id'))
         value = npappend(value, (self.rmp_id, self.pub_id))
         self.insert_into_database(table, rows, value)
 
     def add_publications(self, table, rows, value):
+        '''
+        Add event to the publications table
+        '''
         self.pubid = self.insert_into_database(table, rows, value)
 
     def add_radio_images(self, table, rows, value):
+        '''
+        Add event to the radio_images table
+        '''
         self.rid = self.insert_into_database(table, rows, value)
 
     def add_radio_images_have_rmp(self, table, rows, value):
+        '''
+        Add event to the radio_images_have_rmp table
+        '''
         rows = npappend(rows, ('radio_image_id', 'rmp_id'))
         value = npappend(value, (self.rid, self.rmp_id))    
         self.insert_into_database(table, rows, value)
@@ -100,20 +172,19 @@ class FRBCat_add:
     def add_VOEvent_to_FRBCat(self):
         '''
         Add a VOEvent to the FRBCat database
-		  - input:
-		      connection: database connection
-		      cursor: database cursor object
-		      mapping: mapping between database entry and VOEvent extracted value
-		                 db tables in mapping['FRBCAT TABLE']
-		                 db columns in mapping['FRBCAT COLUMN']
-		                 db values in mapping['values']
-		'''
+          - input:
+              connection: database connection
+              cursor: database cursor object
+              mapping: mapping between database entry and VOEvent extracted value
+                         db tables in mapping['FRBCAT TABLE']
+                         db columns in mapping['FRBCAT COLUMN']
+                         db values in mapping['values']
+        '''
 		# get FRBCat db tables from pandas dataframe mapping
 		#tables = set(mapping['FRBCAT TABLE'].values)
-        tables = ['frbs', 'frbs_notes', 'observations', 'observations_notes',
+        tables = ['authors', 'frbs', 'frbs_notes', 'observations', 'observations_notes',
                   'radio_observations_params', 'radio_observations_params_notes',
                   'radio_measured_params', 'radio_measured_params_notes']
-		#TODO: check/add author to database
 		# loop over defined tables
         for table in tables:
             try:
@@ -136,11 +207,9 @@ class FRBCat_add:
                 except UnboundLocalError:
                     value = [to_add.loc[to_add[
                              'FRBCAT COLUMN'] == row]['value'].values[0]]
-            value = nparray(value)  # convert to numpy array
-            #TODO: check/add author to database
-            # TODO: get author_id
-            print(table,table,table)
-            self.author_id = 1
+            value = npravel(nparray(value))  # convert to numpy array
+            if table == 'authors':
+                self.add_authors(table, rows, value)
             if table == 'frbs':
                 self.add_frbs(table, rows, value)
             if table == 'frbs_notes':
@@ -157,7 +226,6 @@ class FRBCat_add:
                 self.add_radio_measured_params(table, rows, value)
             if table == 'radio_measured_params_notes':
                 self.add_radio_measured_params_notes(table, rows, value)
-                
 		   #     # try to insert
 		   #     try:
 		   #        cursor.execute("INSERT INTO ({}) VALUES (())".format(row,value))
