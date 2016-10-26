@@ -9,18 +9,5 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 import argparse
 from pyAccess import decode_VOEvent as pAdecode
 
-
-def decode_FRBCat_entry():
-    '''
-    Decode FRBCat entry
-    '''
-    # connect to database
-    connection, cursor = dbase.connectToDB()  # TODO: add connection details
-    # load mapping VOEvent -> FRBCat
-    mapping = utils.VOEvent_FRBCAT_mapping()
-    # 
-    utils.decode_VOEvent_from_FRBCat(cursor, mapping)
-
-
 if __name__=="__main__":
     pAdecode.decode_FRBCat_entry()
