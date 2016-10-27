@@ -339,7 +339,7 @@ class FRBCat_decode:
         # TODO: add citations (not in frbcat?)
         self.save_xml(xmlname)
 
-    def self.init_voevent(self):
+    def init_voevent(self):
         '''
         Initialize voevent
         '''
@@ -428,7 +428,7 @@ class FRBCat_decode:
             vp.add_why(self.v,
                        inferences=vp.Inference(name=self.event['name']))
 
-    def save_xml(xmlname):
+    def save_xml(self, xmlname):
         '''
         Check the validity of the voevent xml file and save as xmlname
         '''
