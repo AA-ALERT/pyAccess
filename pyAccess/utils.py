@@ -7,6 +7,7 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 
 import re
 
+
 def strip(text):
     try:
         return text.strip()
@@ -37,5 +38,3 @@ def dms2decdeg(dms):
     # TODO: what is the sign in these strings? E/W?
     degree, minute, second = re.split(':', dms, maxsplit=3)
     return (int(degree) + float(minute)/60 + float(second)/3600)
-
-    

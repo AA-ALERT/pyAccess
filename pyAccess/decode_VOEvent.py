@@ -11,16 +11,17 @@ from pyAccess import utils
 from pyAccess import dbase
 from pyAccess.FRBCat import *
 
-def decode_FRBCat_entry():
+
+def decode_FRBCat_entry(frb_ids):
     '''
     Decode FRBCat entry
     '''
     # load mapping VOEvent -> FRBCat
-    mapping = VOEvent_FRBCAT_mapping()
     # connect to database
     # TODO: add connection details
     connection, cursor = dbase.connectToDB(dbName='frbcat',
                                            userName='aa-alert',
                                            dbPassword='aa-alert')
-    FRBCat = FRBCat_decode(connection, cursor, mapping, 1)
-    FRBCat.decode_VOEvent_from_FRBCat()
+    for frb_id in frb_ids:
+        FRBCat = FRBCat_decode(connection, cursor, frb_id)
+        FRBCat.decode_VOEvent_from_FRBCat()

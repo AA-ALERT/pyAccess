@@ -9,6 +9,7 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 import argparse
 from pyAccess import create_VOEvent as pAcreate
 
+
 def cli_parser():
     '''
     parse command line arguments:
@@ -23,8 +24,7 @@ def cli_parser():
     return results
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     voevents = cli_parser()
     for voevent in voevents:  # TODO: do we allow multiple xml files?
         vo_data, mapping = pAcreate.process_VOEvent(voevent)
-
