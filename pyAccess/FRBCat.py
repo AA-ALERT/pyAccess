@@ -15,6 +15,9 @@ from numpy import array as nparray
 from pyAccess import dbase
 from numpy import where as npwhere
 from numpy import ravel as npravel
+import voeventparse as vp
+import datetime
+import re
 
 
 class FRBCat_add:
@@ -258,7 +261,14 @@ class FRBCat_add:
             # dbase.commitToDB(self.connection, self.cursor)
         dbase.closeDBConnection(self.connection, self.cursor)
 
-    def decode_VOEvent_from_FRBCat(cursor, mapping, event_id):
+
+class FRBCat_decode:
+    def __init__(self, connection, cursor, frbs_id):
+        self.connection = connection
+        self.cursor = cursor
+        self.frbs_id = frbs_id
+
+    def decode_VOEvent_from_FRBCat(self):
         '''
         Decode a VOEvent from the FRBCat database
           input:
@@ -267,15 +277,218 @@ class FRBCat_add:
           output:
             updated mapping with added values column
         '''
-        # extract values from db for each row in mapping pandas dataframe
-        values = [dbase.extract_from_db(
-                  cursor, event_id,
-                  mapping.iloc[idx]['FRBCAT TABLE'],
-                  mapping.iloc[idx]['FRBCAT COLUMN']) for idx,
-                  row in mapping.iterrows()]
-        # add to pandas dataframe as a new column
-        mapping.loc[:, 'value'] = pandas.Series(values, index=mapping.index)
-        return mapping
+        sql = """select *, radio_measured_params_notes.note as rmp_note,
+                 radio_observations_params_notes.note as rop_note,
+                 observations_notes.note as obs_note,
+                 publications.type as pub_type
+                FROM frbs
+                INNER JOIN authors
+                 ON frbs.author_id=authors.id
+                INNER JOIN observations
+                 ON observations.frb_id=frbs.id
+                LEFT JOIN radio_observations_params
+                 ON radio_observations_params.obs_id=observations.id
+                LEFT JOIN radio_measured_params
+                 ON radio_measured_params.rop_id=radio_observations_params.id
+                LEFT JOIN radio_measured_params_notes
+                 ON radio_measured_params_notes.rmp_id=radio_measured_params.id
+                LEFT JOIN radio_observations_params_notes
+                 ON radio_observations_params_notes.rop_id=
+                  radio_observations_params.id
+                LEFT JOIN observations_notes
+                 ON observations_notes.obs_id=observations.id
+                INNER JOIN frbs_have_publications
+                 ON frbs_have_publications.frb_id=frbs.id
+                INNER JOIN publications
+                 ON frbs_have_publications.pub_id=publications.id
+                WHERE frbs.id in ({})""".format(self.frbs_id)
+        self.cursor.execute(sql)
+        while True:
+            # extract next event from cursor
+            self.event = self.cursor.fetchone()
+            if not self.event:
+                # no more events to process
+                break
+            # set the xml name
+            try:
+                # more than 1 event for this frb
+                counter += 1
+                xmlname = self.event['name'] + '_' + str(counter) + '.xml'
+            except NameError:
+                # first event for this frb
+                counter = 0
+                xmlname = self.event['name'] + '.xml'
+            self.create_xml(xmlname)
+
+    def create_xml(self, xmlname):
+        '''
+        create VOEvent xml file from extracted database values
+        '''
+        # Initialize voevent
+        self.init_voevent()
+        # Define Who details
+        self.set_who()
+        # Define WhereWhen details
+        self.set_wherewhen()
+        # Define How details
+        self.set_how()
+        # Define What section
+        self.set_what()
+        # Define Why section
+        self.set_why()
+        # TODO: add citations (not in frbcat?)
+        self.save_xml(xmlname)
+
+    def init_voevent(self):
+        '''
+        Initialize voevent
+        '''
+        # /begin placeholders
+        stream = 'teststream'
+        stream_id = 1
+        role = vp.definitions.roles.test
+        # /end placeholders
+        self.v = vp.Voevent(stream=stream, stream_id=stream_id, role=role)
+        # set description TODO, do we have something to put here?
+        # v.Description =
+
+    def set_who(self):
+        '''
+        Add who section to voevent object
+        '''
+        # Set Who.Date timestamp to date of packet-generation
+        # regular expression to remove ivo:// in the beginning of string
+        vp.set_who(self.v, date=datetime.datetime.utcnow(),
+                   author_ivorn=re.sub('^ivo://', '', self.event['ivorn']))
+        # Delete the voevent-parse tag that gets added to the Who skeleton
+        if hasattr(self.v.Who, 'Description'):
+            del self.v.Who.Description
+        # set author
+        self.set_author()
+
+    def set_author(self):
+        '''
+        Add author section to voevent object
+        '''
+        # TODO: placeholder, not in database; one of author details need
+        # to be specified for a valid voevent 2.0 file
+        self.event['contact_name'] = 'placeholder'
+        vp.set_author(self.v,
+                      title=self.event['title'],
+                      shortName=self.event['short_name'],
+                      logoURL=self.event['logo_url'],
+                      contactName=self.event['contact_name'],
+                      contactEmail=self.event['contact_email'],
+                      contactPhone=self.event['contact_phone'])
+
+    def set_what(self):
+        '''
+        Add What section to voevent object
+        '''
+        # Add radio observations params section
+        self.rop_params()
+        # Add radio measured params section
+        self.rmp_params()
+
+    def set_how(self):
+        '''
+        Add How section to voevent object
+        '''
+        # Describe the reference/telescope here
+        # TODO: reference of telescope?
+        vp.add_how(self.v, descriptions=self.event['telescope'],
+                   references=vp.Reference(""))
+
+    def set_wherewhen(self):
+        '''
+        Add WhereWhen section to voevent object
+        '''
+        # TODO: add coord system to database?
+        # ra: right ascension; dec: declination; err: error radius
+        vp.add_where_when(self.v,
+                          coords=vp.Position2D
+                          (ra=utils.dms2decdeg(self.event['raj']),
+                           dec=utils.dms2decdeg(self.event['decj']),
+                           err=self.event['pointing_error'], units='deg',
+                           system=vp.definitions.sky_coord_system.utc_fk5_geo),
+                          obs_time=self.event['utc'],
+                          observatory_location=self.event['telescope'])
+
+    def set_why(self):
+        '''
+        Add Why section to voevent object
+        '''
+        # Why section (optional) allows for speculation on probable
+        # astrophysical cause
+        if self.event['detected']:
+            vp.add_why(self.v,
+                       inferences=vp.Inference(relation='detected',
+                                               name=self.event['name']))
+        else:
+            vp.add_why(self.v,
+                       inferences=vp.Inference(name=self.event['name']))
+
+    def save_xml(self, xmlname):
+        '''
+        Check the validity of the voevent xml file and save as xmlname
+        '''
+        # check if the created event is a valid VOEvent v2.0 event
+        if vp.valid_as_v2_0(self.v):
+            # save to VOEvent xml
+            with open(xmlname, 'w') as f:
+                vp.dump(self.v, f, pretty_print=True)
+
+    def rop_params(self):
+        '''
+        Add radio observations params section to voevent object
+        '''
+        # rop params in group 'radio observations params'
+        rop_params = ['backend', 'beam', 'gl', 'gb', 'FWHM', 'sampling_time',
+                      'bandwidth', 'centre_frequency', 'npol',
+                      'channel_bandwidth', 'bits_per_sample', 'gain',
+                      'tsys', 'ne2001_dm_limit', 'rop_note']
+        rop_param_list = self.createParamList(rop_params)
+        self.v.What.append(vp.Group(params=rop_param_list,
+                                    name='radio observations params'))
+
+    def rmp_params(self):
+        '''
+        Add radio measured params section to voevent object
+        '''
+        rmp_params = ['dm', 'dm_error', 'snr', 'width', 'width_error_upper',
+                      'width_error_lower', 'flux', 'flux_prefix',
+                      'flux_error_upper', 'flux_error_lower',
+                      'flux_calibrated', 'dm_index', 'dm_index_error',
+                      'scattering_index', 'scattering_index_error',
+                      'scattering_time', 'scattering_time_error',
+                      'linear_poln_frac', 'linear_poln_frac_error',
+                      'circular_poln_frac', 'circular_poln_frac_error',
+                      'spectral_index', 'spectral_index_error', 'z_phot',
+                      'z_phot_error', 'z_spec', 'z_spec_error', 'rank',
+                      'rmp_note']
+        rmp_param_list = self.createParamList(rmp_params)
+        # rmp params in group 'radio measured params'
+        self.v.What.append(vp.Group(params=rmp_param_list,
+                           name='radio measured params'))
+
+    def createParamList(self, params):
+        '''
+        ceate a list of params, so these can be written as group
+        '''
+        # TODO: don't add params with no value
+        for param in params:
+            try:
+                value = self.event[param]
+            except KeyError:
+                # key is not in database
+                raise
+            if value:
+                try:
+                    paramList.extend(vp.Param(name=param,
+                                              value=self.event[param]))
+                except NameError:
+                    paramList = [vp.Param(name=param, value=self.event[param])]
+        return paramList
 
 
 def VOEvent_FRBCAT_mapping(new_event=True):
@@ -293,9 +506,4 @@ def VOEvent_FRBCAT_mapping(new_event=True):
                        skiprows=[0], skip_blank_lines=True,
                        skipinitialspace=True,
                        converters=convert).fillna('None')
-    # todo: handle new events
-    # mapping =
-    #   Dictlist(zip(df.to_dict('split')['index'], df.to_dict('records')))
-    # return mapping
-    # return pandas dataframe
     return df

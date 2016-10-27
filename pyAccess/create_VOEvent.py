@@ -108,7 +108,7 @@ def parse_VOEvent(voevent, mapping):
         # new VOEvent
         mapping = VOEvent_FRBCAT_mapping(new_event=True)
     else:
-        mapping = FRBCat.VOEvent_FRBCAT_mapping(new_event=False)
+        mapping = VOEvent_FRBCAT_mapping(new_event=False)
     # use the mapping to get required data from VOEvent xml
     # if a path is not found in the xml it gets an empty list which is
     # removed in the next step

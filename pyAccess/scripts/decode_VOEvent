@@ -10,17 +10,18 @@ import argparse
 from pyAccess import decode_VOEvent as pAdecode
 
 
-def decode_FRBCat_entry():
+def cli_parser():
     '''
-    Decode FRBCat entry
+    parse command line arguments:
     '''
-    # connect to database
-    connection, cursor = dbase.connectToDB()  # TODO: add connection details
-    # load mapping VOEvent -> FRBCat
-    mapping = utils.VOEvent_FRBCAT_mapping()
-    # 
-    utils.decode_VOEvent_from_FRBCat(cursor, mapping)
+    parser = argparse.ArgumentParser(description='Process VOEvent XML file '
+                                     'and add it to FRB database')
+    parser.add_argument('frb_ids', metavar='frb_ids',
+                        type=int, nargs='+',
+                        help='List of frbs ids')
+    return vars(parser.parse_args())['frb_ids']
 
 
-if __name__=="__main__":
-    pAdecode.decode_FRBCat_entry()
+if __name__ == "__main__":
+    frb_ids = cli_parser()
+    pAdecode.decode_FRBCat_entry(frb_ids)

@@ -9,14 +9,19 @@ import voeventparse as vp
 import pandas
 from pyAccess import utils
 from pyAccess import dbase
+from pyAccess.FRBCat import *
 
 
-def decode_FRBCat_entry():
+def decode_FRBCat_entry(frb_ids):
     '''
     Decode FRBCat entry
     '''
-    # connect to database
-    connection, cursor = dbase.connectToDB()  # TODO: add connection details
     # load mapping VOEvent -> FRBCat
-    mapping = utils.VOEvent_FRBCAT_mapping()
-    utils.decode_VOEvent_from_FRBCat(cursor, mapping)
+    # connect to database
+    # TODO: add connection details
+    connection, cursor = dbase.connectToDB(dbName='frbcat',
+                                           userName='aa-alert',
+                                           dbPassword='aa-alert')
+    for frb_id in frb_ids:
+        FRBCat = FRBCat_decode(connection, cursor, frb_id)
+        FRBCat.decode_VOEvent_from_FRBCat()
