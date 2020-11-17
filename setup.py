@@ -12,7 +12,7 @@ setup(
     description = (""),
     license = "Apache 2.0",
     keywords = "VOEvent, FRBCAT",
-    url = "https://github.com/AA-ALERT/pyAccess",
+    url = "https://github.com/TRASAL/pyAccess",
     packages=['pyAccess'],
     package_data={'pyAccess': ['mapping.txt']},
     scripts=['pyAccess/scripts/decode_VOEvent',
